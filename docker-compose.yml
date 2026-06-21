@@ -1,0 +1,59 @@
+﻿version: '3.8'
+
+services:
+  trabalho_mysql:
+    image: mysql:8.0
+    container_name: trabalho_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: trabalho_api
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  trabalho_mongo:
+    image: mongo:7
+    container_name: trabalho_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend_api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - MYSQL_HOST=trabalho_mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=trabalho_api
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root_password
+      - MONGO_URI=mongodb://trabalho_mongo:27017/trabalho_api_nosql
+      - JWT_SECRET=chave_super_secreta_para_trabalho_node_express
+      - JWT_EXPIRES_IN=1h
+    depends_on:
+      trabalho_mysql:
+        condition: service_healthy
+      trabalho_mongo:
+        condition: service_started
+
+volumes:
+  mysql_data:
+  mongo_data:

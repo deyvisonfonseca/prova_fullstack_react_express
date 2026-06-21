@@ -1,0 +1,66 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: prova_api_express
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    command: sh -c "npm start"
+    networks:
+      - rede_prova
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: prova_frontend_react
+    ports:
+      - "5173:80"
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend
+    networks:
+      - rede_prova
+
+  mysql:
+    image: mysql:8.0
+    container_name: prova_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: trabalho_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - prova_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rede_prova
+
+  mongo:
+    image: mongo:7
+    container_name: prova_mongo
+    ports:
+      - "27019:27017"
+    volumes:
+      - prova_mongo_data:/data/db
+    networks:
+      - rede_prova
+
+volumes:
+  prova_mysql_data:
+  prova_mongo_data:
+
+networks:
+  rede_prova:
+    driver: bridge
